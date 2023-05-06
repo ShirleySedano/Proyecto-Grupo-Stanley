@@ -54,6 +54,6 @@ La información se extrae desde la API de Yahoo Finance desde el 2012-05-18 hast
 se utiliza cuando se quiere caracterizar las interacciones simultaneas entre un grupo de variables, por lo tanto, no existe 
 una variable dependiente y un conjunto de variables independientes que intentan explicarla, si no que existe un sistema de 
 ecuaciones constituido por un bloque de rezagos de cada una de las variables del modelo que presentan interacción entre sí.Los modelos
-que se intentaron y la precisión de los mismos los puede ver 
+que se intentaron y la precisión de los mismos los puede ver https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModelosVAR.Rmd
 
 #### Forecaster Autoregresor de Skforercaster con Random Forest:
