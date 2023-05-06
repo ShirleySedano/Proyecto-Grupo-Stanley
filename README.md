@@ -63,4 +63,8 @@ Para realizar la predicción de los rendimientos logarítmicos de la acción de 
 
 #### BRK:
 
+### Implementación de regresión lineal para la predicciones de los Betas de las acciones 
+
+Para calcular los Betas se hace referencia al modelo de valoración de activos (CAPM) el cual permite estimar la rentabilidad esperada en función del riesgo sistemático.Para este proyecto se realiza de una regresión lineal simple y se calcula el valor de α y β teniendo en cuenta como variable independiente los rendimientos logarítmicos del S&P500 y la variable dependiente va variando por el resto de los rendimientos logarítmicos de las demás acciones contempladas en este trabajo.  El valor de α se refieren respectivamente a la valoración errónea del activo relativo al mercado, libre de riesgo, mientras que β indica la sensibilidad del riesgo del mercado. Los resultados los puede ver https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/Betas.ipynb
+
 
