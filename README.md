@@ -57,3 +57,5 @@ ecuaciones constituido por un bloque de rezagos de cada una de las variables del
 que se intentaron y la precisión de los mismos los puede ver https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModelosVAR.Rmd
 
 #### Forecaster Autoregresor de Skforercaster con Random Forest:
+
+#### MSFT: Para realizar la predicción de los rendimientos logarítmicos de la acción de Microsoft se usa el modelo GARCH, el cual encuentra la volatilidad promedio a medio plazo mediante una autorregresión que depende de la suma de perturbaciones rezagadas y de la suma de varianzas rezagados. Los resultados los puede ver en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModeloGARCH_MSFT.Rmd
