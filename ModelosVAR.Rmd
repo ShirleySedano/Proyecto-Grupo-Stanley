@@ -1,0 +1,485 @@
+---
+title: "Modelos VAR"
+output: html_document
+---
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+##Librerias
+
+library(quantmod)
+library(ggplot2)
+library(dygraphs)
+library(dplyr)
+library(xts)
+library(ggcorrplot)
+library(tidyverse)
+library(lubridate)
+library(tseries)
+library(tsoutliers)
+library(tsbox)
+library(forecast)
+library(data.table)
+library(ggcorrplot)
+library(TSstudio)
+library(fImport)
+library(vars)
+
+```
+
+### Modelos VAR (Vectores Autorregresivos)
+
+Los vectores serán un conjunto de variables dependientes, es decir endogenas.Estas variables no solo dependen de sus propios rezagos, sino también de los rezagos de las demás variables dependientes.
+
+En un modelo VAR las variables están relacionadas temporalmente.
+
+* Var (Reducido): Al sufrir un choque una de las variables, este choque se ve reflejado en las demas variables en el tiempo t+1
+
+* Var (Estructural): Al sufrir un choque una de las variables, este choque se ve reflejado en las demas variables en el mismo tiempo o de manera comtemporanea
+
+### Creacion de la base
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+nombreAcciones<-c("^GSPC","^VIX")
+acciones<-getSymbols(nombreAcciones, src = "yahoo", from = "2012-05-18", to = "2023-03-01", periodicity = "daily")
+```
+
+```{r,echo=FALSE, message=FALSE,warning=FALSE}
+
+CierreAjustado<- cbind(GSPC$GSPC.Adjusted,VIX$VIX.Adjusted)
+
+tail(CierreAjustado)
+```
+## Variable macroeconomica diarias
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+Macroeconomicas<-c("DTWEXBGS","DFF")
+Dolar<-getSymbols(Macroeconomicas, src = "FRED", from = "2012-05-01", to = "2023-03-01")  ## El filtro de fecha no funciona con FRED
+
+###Como el filtro por fecha no funciona se va a pasar a dataframe y luego a xts
+
+MacroeconomicasDF<-as.data.frame(cbind(DTWEXBGS,DFF))
+MacroeconomicasDF$Fecha<-as.Date(row.names(MacroeconomicasDF))
+
+MacroeconomicasDF<-subset(MacroeconomicasDF,MacroeconomicasDF$Fecha>="2012-05-18" & MacroeconomicasDF$Fecha<="2023-04-24")
+
+Macroeconomicas<- xts(MacroeconomicasDF[,c(1,2)], order.by=MacroeconomicasDF[,3]) ##Lo nombra como una V1 pero no se porque me cambia el nombre
+
+
+##Union de las acciones financieras con las variables macroeconomicas
+
+CierreAjustado<-cbind(CierreAjustado,Macroeconomicas)
+
+### Se eliminan valores nulos
+
+CierreAjustado<-na.omit(CierreAjustado)
+```
+
+### Variables macroeconomicas mensuales
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+VariablesMacroeconomicas<-c("UNRATE","UMCSENT","CPIAUCSL")
+Macroeconomicas<-getSymbols(VariablesMacroeconomicas, src = "FRED", from = "2012-05-01", to = "2023-02-28")  ## El filtro de fecha no funciona con FRED
+
+###Union de las variables macroeconomicas
+
+Macroeconomicas<-cbind(UNRATE$UNRATE,UMCSENT$UMCSENT,CPIAUCSL$CPIAUCSL)
+
+##Omitir datos nulos
+Macroeconomicas<-na.omit(Macroeconomicas)
+
+###Como el filtro por fecha no funciona se va a pasar a dataframe y luego a xts
+
+MacroeconomicasDF<-as.data.frame(Macroeconomicas)
+MacroeconomicasDF$Fecha<-as.Date(row.names(MacroeconomicasDF))
+
+MacroeconomicasDF<-subset(MacroeconomicasDF,MacroeconomicasDF$Fecha>="2012-05-01" & MacroeconomicasDF$Fecha<="2023-04-21")
+
+## Se hallan columnas con el mes y el año correspondiente a la fecha
+
+MacroeconomicasDF$Mes <- as.numeric(format(MacroeconomicasDF$Fecha,'%m'))
+MacroeconomicasDF$Anio <- as.numeric(format(MacroeconomicasDF$Fecha,'%Y'))
+
+## Cierre a DF
+CierreAjustadoDF<-as.data.frame(CierreAjustado)
+CierreAjustadoDF$Fecha<-as.Date(row.names(CierreAjustadoDF))
+
+##Crear dataframe con el rango de fecha que se esta trabajando en la base CierreAjustado, es decir "2012-05-21" hasta "2023-02-28"
+
+Fecha<-seq(from=as.Date(min(CierreAjustadoDF$Fecha)), to=as.Date(max(CierreAjustadoDF$Fecha)), by=1)
+Base<-data.frame(Fecha)
+Base$Mes <- as.numeric(format(Base$Fecha,'%m'))
+Base$Anio <- as.numeric(format(Base$Fecha,'%Y'))
+
+Macroeconomicas<-left_join(Base, MacroeconomicasDF, by = c("Mes","Anio"))
+
+##Elimino las columas que no interesan
+
+Macroeconomicas<-Macroeconomicas[,-c(2,3,7)]
+
+## Se pasa a xts
+Macroeconomicas<- xts(Macroeconomicas[,-1], order.by=Macroeconomicas[,1])
+
+##Union de las acciones financieras con las variables macroeconomicas
+
+CierreAjustado<-cbind(CierreAjustado,Macroeconomicas)
+
+##Omitir valores nulos
+
+CierreAjustado<-na.omit(CierreAjustado)
+
+```
+
+Ya se tiene la base con los valores originales
+
+
+### Matriz de correlacion
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,fig.align='center',fig.width=7,fig.height=7}
+
+corr<- round(cor(CierreAjustado), 1)
+
+ggcorrplot(corr, method = 'circle', type = 'lower', lab = TRUE,  colors = c("cadetblue1", "white", "cadetblue4")) +
+  ggtitle("Correlograma") +labs(x = "",y = "")
+
+```
+
+
+### Modelo VAR
+
+Division en conjunto de entrenamiento y prueba. El conjunto de prueba será el 2023
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+CierreAjustado<-CierreAjustado[,c(1,2,3,4)]
+
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+## Conjunto de entrenamiento y prueba
+
+BaseEntrenamiento<-CierreAjustado[c(seq(1,2648)),]
+BasePrueba<-CierreAjustado[c(seq(2649,2668)),]
+
+```
+
+## 1. Se debe comprobar estacionariedad: Prueba de Dickey Fuller
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+adf.test(BaseEntrenamiento$GSPC.Adjusted)  ##No estacionario
+adf.test(BaseEntrenamiento$VIX.Adjusted)  ##Estacionario
+adf.test(BaseEntrenamiento$DTWEXBGS)  ##No estacionario
+adf.test(BaseEntrenamiento$DFF)  ##No estacionario
+
+
+```
+
+No es estacionario, por lo tanto se calculara los rendimientos logaritmicos
+
+## 2. Rendimientos logaritmicos
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Retornos logaritmicos
+BaseEntrenamiento$GSPC.Return<-(periodReturn(BaseEntrenamiento$GSPC.Adjusted, period = "daily",type="log")*100)
+BaseEntrenamiento$VIX.Return<-(periodReturn(BaseEntrenamiento$VIX.Adjusted, period = "daily",type="log")*100)
+BaseEntrenamiento$DTWEXBGS.Return<-(periodReturn(BaseEntrenamiento$DTWEXBGS, period = "daily",type="log")*100)
+BaseEntrenamiento$DFF.Return<-(periodReturn(BaseEntrenamiento$DFF, period = "daily",type="log")*100)
+
+```
+
+Finalmente solo se trabaja con los datos diarios, rendimientos logaritmicos sin suavizamiento de datos atipicos
+
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+adf.test(BaseEntrenamiento$GSPC.Return)  ##Estacionario
+adf.test(BaseEntrenamiento$VIX.Return)  ##Estacionario
+adf.test(BaseEntrenamiento$DTWEXBGS.Return)  ##Estacionario
+adf.test(BaseEntrenamiento$DFF.Return)  ##Estacionario
+
+```
+
+Trabajemos por el momento con las tres primeras variables con rendimienos logaritmicos
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+BaseEntrenamiento<-BaseEntrenamiento[,c(5,6,7,8)]
+
+plot(BaseEntrenamiento)
+
+```
+###Matriz de correlacion
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,fig.align='center',fig.width=7,fig.height=7}
+
+corr<- round(cor(BaseEntrenamiento), 1)
+
+ggcorrplot(corr, method = 'circle', type = 'lower', lab = TRUE,  colors = c("cadetblue1", "white", "cadetblue4")) +
+  ggtitle("Correlacion") +labs(x = "",y = "")
+
+
+
+```
+
+
+
+### Generar pruebas de causalidad de Granger para determinar el orden causal
+
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+grangertest(BaseEntrenamiento$GSPC.Return~BaseEntrenamiento$VIX.Return,order=1)
+
+#H0=El Vix no afecta el SP500
+#H1=El Vix afecta el SP500  (Se acepta)
+
+
+```
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+grangertest(BaseEntrenamiento$GSPC.Return~BaseEntrenamiento$DTWEXBGS.Return,order=2)
+
+#H0=El Indice del dolar no afecta el SP500 
+#H1=El Indice del dolar afecta el SP500 (Se acepta)
+
+
+```
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+grangertest(BaseEntrenamiento$GSPC.Return~BaseEntrenamiento$DFF.Return,order=15)
+
+#H0=El Indice del dolar no afecta el SP500 
+#H1=El Indice del dolar afecta el SP500 (Se acepta)
+
+
+```
+
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+grangertest(BaseEntrenamiento$VIX.Return~BaseEntrenamiento$GSPC.Return,order=1)
+
+#H0=El SP500 no afecta el VIX 
+#H1=El SP500 afecta el VIX (Se acepta)
+
+
+```
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+grangertest(BaseEntrenamiento$VIX.Return~BaseEntrenamiento$DTWEXBGS.Return,order=20) ## Se intento con 20 rezagos y se concluye que el indice del dolar no afecta el VIX
+
+#H0=El indice del dolar no afecta el VIX 
+#H1=El indice del dolar afecta el VIX (Se acepta)
+
+```
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+grangertest(BaseEntrenamiento$VIX.Return~BaseEntrenamiento$DFF.Return,order=20)
+
+#H0=El indice del dolar no afecta el VIX 
+#H1=El indice del dolar afecta el VIX (Se acepta)
+
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+grangertest(BaseEntrenamiento$DTWEXBGS.Return~BaseEntrenamiento$GSPC.Return,order=1) 
+
+#H0=El SP500 no afecta el indice del dolar 
+#H1=El SP500 afecta elindice del dolar (Se acepta)
+
+```
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+grangertest(BaseEntrenamiento$DTWEXBGS.Return~BaseEntrenamiento$VIX.Return,order=1) 
+
+#H0=El vix no afecta el indice del dolar 
+#H1=El vix afecta elindice del dolar (Se acepta)
+
+```
+
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+grangertest(BaseEntrenamiento$DTWEXBGS.Return~BaseEntrenamiento$DFF.Return,order=1) 
+
+#H0=El vix no afecta el indice del dolar 
+#H1=El vix afecta elindice del dolar (Se acepta)
+
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+grangertest(BaseEntrenamiento$DFF.Return~BaseEntrenamiento$GSPC.Return,order=2) 
+
+#H0=El vix no afecta el indice del dolar 
+#H1=El vix afecta elindice del dolar (Se acepta)
+
+```
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+grangertest(BaseEntrenamiento$DFF.Return~BaseEntrenamiento$VIX.Return,order=17) 
+
+#H0=El vix no afecta el indice del dolar 
+#H1=El vix afecta elindice del dolar (Se acepta)
+
+```
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+grangertest(BaseEntrenamiento$DFF.Return~BaseEntrenamiento$DTWEXBGS.Return,order=2) 
+
+#H0=El vix no afecta el indice del dolar 
+#H1=El vix afecta elindice del dolar (Se acepta)
+
+```
+
+### Modelo VAR Reducido
+
+Para hallar el número de rezagos
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+VARselect(BaseEntrenamiento) 
+```
+
+### Intento numero 1 con 9 rezagos según los criterios AIC y FPE
+
+```{r,echo=FALSE,message=FALSE}
+ModeloVAR1<-VAR(BaseEntrenamiento,p=9,ic="AIC",type="const")
+summary(ModeloVAR1) ### Se verifica que las raices polinomiales sean menores a 1, lo cual cumple y se concluye que cumple la condicion de especificidad
+
+#plot(ModeloVAR)
+```
+
+###Pruebas de especificacion del modelo VAR
+
+Se halla la prueba de autocorrelacion serial de los residuales
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+seriala<-serial.test(ModeloVAR1,lags.pt = 9,type = "PT.asymptotic")
+seriala$serial
+
+#Ho=Los residuales estan correlacionados
+#H1=Los residuales estan correlacionados
+
+##Hay presencia de correlacion serial
+```
+
+Ahora se realiza la prueba de normalidad de los residuales
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+normalidad=normality.test(ModeloVAR1)
+normalidad$jb.mul
+
+#Ho=Los residuales se distribuyen normal
+#H1=Los residuales no se distribuyen normal
+
+##Se concluye que no hay normalidad
+```
+
+Ahora se realiza la prueba de homocedasticidad de los residuales
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+arch1<-arch.test(ModeloVAR1, lags.multi = 9)
+arch1$arch.mul
+
+#H0=La varianza de los residuales es constante
+#H1=La varianza de los residuales no es constante
+
+##Se concluye que la varianza no es costante
+```
+
+## Test
+
+Se hallan los retornos logaritmicos de la base de prueba
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Retornos logaritmicos
+BasePrueba$GSPC.Return<-(periodReturn(BasePrueba$GSPC.Adjusted, period = "daily",type="log")*100)
+BasePrueba$VIX.Return<-(periodReturn(BasePrueba$VIX.Adjusted, period = "daily",type="log")*100)
+BasePrueba$DTWEXBGS.Return<-(periodReturn(BasePrueba$DTWEXBGS, period = "daily",type="log")*100)
+BasePrueba$DFF.Return<-(periodReturn(BasePrueba$DFF, period = "daily",type="log")*100)
+
+```
+
+Trabajemos por el momento con las tres primeras variables con rendimienos logaritmicos
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+BasePrueba<-BasePrueba[,c(5,6,7,8)]
+
+plot(BasePrueba)
+
+```
+
+### Metricas
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+library(MLmetrics)
+Prediccion<-predict(ModeloVAR1,n.ahead=9)
+fanchart(Prediccion,names = "GSPC.Return")
+fanchart(Prediccion,names = "VIX.Return")
+fanchart(Prediccion,names = "DTWEXBGS.Return")
+fanchart(Prediccion,names = "DFF.Return")
+
+
+RMSE((Prediccion$fcst$GSPC.Return[,1]),(as.vector(BasePrueba$GSPC.Return)))
+R2_Score(Prediccion$fcst$GSPC.Return[,1],(as.vector(BasePrueba$GSPC.Return)))
+MAE(Prediccion$fcst$GSPC.Return[,1],(as.vector(BasePrueba$GSPC.Return)))
+
+```
+
+### Intento numero 1 con 2 rezagos según los criterios HQ y SC
+
+```{r,echo=FALSE,message=FALSE}
+ModeloVAR2<-VAR(BaseEntrenamiento,p=2,ic="SC",type="const")
+summary(ModeloVAR2) ### Se verifica que las raices polinomiales sean menores a 1, lo cual cumple y se concluye que cumple la condicion de especificidad
+
+#plot(ModeloVAR)
+```
+
+###Pruebas de especificacion del modelo VAR
+
+Se halla la prueba de autocorrelacion serial de los residuales
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+seriala<-serial.test(ModeloVAR2,lags.pt = 2,type = "PT.asymptotic")
+seriala$serial
+
+#Ho=Los residuales estan correlacionados
+#H1=Los residuales estan correlacionados
+
+##Hay presencia de correlacion serial
+```
+
+Ahora se realiza la prueba de normalidad de los residuales
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+normalidad=normality.test(ModeloVAR2)
+normalidad$jb.mul
+
+#Ho=Los residuales se distribuyen normal
+#H1=Los residuales no se distribuyen normal
+
+##Se concluye que no hay normalidad
+```
+
+Ahora se realiza la prueba de homocedasticidad de los residuales
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+arch1<-arch.test(ModeloVAR2, lags.multi = 2)
+arch1$arch.mul
+
+#H0=La varianza de los residuales es constante
+#H1=La varianza de los residuales no es constante
+
+##Se concluye que la varianza no es costante
+```
+### Metricas
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+library(MLmetrics)
+Prediccion<-predict(ModeloVAR2,n.ahead=9)
+fanchart(Prediccion,names = "GSPC.Return")
+fanchart(Prediccion,names = "VIX.Return")
+fanchart(Prediccion,names = "DTWEXBGS.Return")
+fanchart(Prediccion,names = "DFF.Return")
+
+
+RMSE((Prediccion$fcst$GSPC.Return[,1]),(as.vector(BasePrueba$GSPC.Return)))
+R2_Score(Prediccion$fcst$GSPC.Return[,1],(as.vector(BasePrueba$GSPC.Return)))
+MAE(Prediccion$fcst$GSPC.Return[,1],(as.vector(BasePrueba$GSPC.Return)))
+
+```
+
+
+
+
