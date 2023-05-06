@@ -44,7 +44,7 @@ Los rendimientos logaritmicos de los precios de cierre de las acciones del porta
 * Jhonson y Johnson (JNJ) 
 * Procter & Gamble (PG) 
 
-La información se extrae desde la API de Yahoo Finance desde el 2012-05-18 hasta el 2023-02-28 
+La información se extrae desde la API de Yahoo Finance desde el 2012-05-18 hasta el 2023-02-28.Para observar el tratamiento previo que se le realizó a la información, dirigirse al siguiente enlace https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ArregloBase.Rmd
 
 ### Los tres mejores modelos detectados para pronosticar los rendimientos logaritmicos del S&P500:
 
