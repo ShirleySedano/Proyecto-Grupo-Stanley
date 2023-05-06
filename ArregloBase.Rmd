@@ -1,0 +1,838 @@
+---
+title: "Limpieza Base de datos del SP500 y principales acciones"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Acciones financieras
+
+A continuación se construirá la base de datos necesaria para el proyecto. Se tendrán en cuenta las siguientes acciones que pertenecen al portafolio del grupo Stanley
+
+* SP500
+* Apple (AAPL)
+* Microsoft (MSFT) 
+* Amazon (AMZN) 
+* Tesla (TSLA) 
+* Alphabet Class A (GOOGL) 
+* Alphabet Class C (GOOG)
+* NVIDIA Corporation (NVDA) 
+* Berkshire Hathaway Class B (BRK.B) 
+* Meta (FB), formerly Facebook, Class A (META)
+* UnitedHealth Group (UNH)
+
+Además se tendrán en cuenta estas dos acciones:
+
+* Jhonson y Johnson (JNJ)
+* Procter & Gamble (PG)
+
+De igual manera estarán presente en la base la siguiente información:
+
+* CBOE Volatility Index (^VIX): El VIX es un índice de volatilidad, en tiempo real, creado por el Chicago Board Options Exchange (CBOE). Este índice fue el primer referente para cuantificar las expectativas del mercado respecto a la volatilidad. Sin embargo, el índice es prospectivo, lo que significa que solo muestra la volatilidad implícita del S&P 500 (SPX) durante los siguientes 30 días.
+
+El VIX se calcula utilizando los precios de las opciones del índice SPX y se expresa como un porcentaje. Si el valor del VIX aumenta, es probable que el S&P 500 caiga, mientras que si el valor del VIX disminuye, es probable que el S&P 500 se mantenga estable.
+
+Interpretacion: Si aparece un 20, tendríamos que interpretarlo como que esperamos que el índice SPX tenga una volatilidad del 20% para los próximos 30 día
+
+Se trabajará con las variaciones del precio de cierre ajustado desde el 2012-05-18 hasta el 2023-02-28, con una periodicidad diaria.
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Librerias
+
+library(quantmod)
+library(ggplot2)
+library(dygraphs)
+library(dplyr)
+library(xts)
+library(ggcorrplot)
+library(tidyverse)
+library(lubridate)
+library(tseries)
+library(tsoutliers)
+library(tsbox)
+library(forecast)
+library(data.table)
+library(ggcorrplot)
+
+```
+
+
+### Extraer el precio de cierre ajustado
+
+Se extrae el precio de cierre ajustado de las acciones por medio de Yahoo Finance desde el 2012-05-18 hasta el 2023-02-28
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+nombreAcciones<-c("^GSPC","AAPL","AMZN","MSFT","TSLA","GOOG","GOOGL","NVDA","BRK-B","META","UNH","JNJ","PG","^VIX")
+acciones<-getSymbols(nombreAcciones, src = "yahoo", from = "2012-05-18", to = "2023-03-01", periodicity = "daily")
+```
+
+```{r,echo=FALSE, message=FALSE,warning=FALSE}
+
+CierreAjustado<- cbind(GSPC$GSPC.Adjusted,AAPL$AAPL.Adjusted,AMZN$AMZN.Adjusted,MSFT$MSFT.Adjusted,TSLA$TSLA.Adjusted,GOOG$GOOG.Adjusted,GOOGL$GOOGL.Adjusted,NVDA$NVDA.Adjusted,`BRK-B`[,6],META$META.Adjusted,UNH$UNH.Adjusted,JNJ$JNJ.Adjusted,PG$PG.Adjusted,VIX$VIX.Adjusted)
+
+head(CierreAjustado)
+```
+
+### 1. Elimina los datos nulos
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+CierreAjustado<-na.omit(CierreAjustado)  ##En realidad no hay valores nulos
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,fig.align='center'}
+dygraph(CierreAjustado[,1:14], main = "Precio de cierre ajustado del SP500 y sus principales componentes") %>%
+  dyOptions(colors = RColorBrewer::brewer.pal(20, "Set2"))%>%
+  dyAxis("y",label = "Precio de cierre ajustado")%>%
+  dyAxis("x",label = "Año") %>%
+  dyLegend(dygraph, show = c("onmouseover"), width = 150) %>%
+  dyRangeSelector()
+
+```
+
+### 2. Estandarización de los precios
+
+Para cada precio de cierre ajustado se le resta la media y se divide por la desviación estandar
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+CierreAjustado$GSPC.Scale<-scale(CierreAjustado$GSPC.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$AAPL.Scale<-scale(CierreAjustado$AAPL.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$AMZN.Scale<-scale(CierreAjustado$AMZN.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$MSFT.Scale<-scale(CierreAjustado$MSFT.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$TSLA.Scale<-scale(CierreAjustado$TSLA.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$GOOG.Scale<-scale(CierreAjustado$GOOG.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$GOOGL.Scale<-scale(CierreAjustado$GOOGL.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$NVDA.Scale<-scale(CierreAjustado$NVDA.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$BRK.B.Scale<-scale(CierreAjustado$BRK.B.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$META.Scale<-scale(CierreAjustado$META.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$UNH.Scale<-scale(CierreAjustado$UNH.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$JNJ.Scale<-scale(CierreAjustado$JNJ.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$PG.Scale<-scale(CierreAjustado$PG.Adjusted, center = TRUE, scale = TRUE)
+CierreAjustado$VIX.Scale<-scale(CierreAjustado$VIX.Adjusted, center = TRUE, scale = TRUE)
+
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,fig.align='center'}
+dygraph(CierreAjustado[,15:28], main = "Precio de cierre ajustado del SP500 y sus principales componentes (Estandarizado)") %>%
+  dyOptions(colors = RColorBrewer::brewer.pal(20, "Set2"))%>%
+  dyAxis("y",label = "Precio de cierre ajustado")%>%
+  dyAxis("x",label = "Año") %>%
+  dyLegend(dygraph, show = c("onmouseover"), width = 150) %>%
+  dyRangeSelector()
+
+```
+
+### 3. Se calculan los retornos logaritmicos porcentuales para cada una de las acciones
+
+Los retornos se calculan con respecto a los precios originalmente descargados desde Yahoo Finance
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Retornos logaritmicos
+CierreAjustado$GSPC.Return<-(periodReturn(CierreAjustado$GSPC.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$AAPL.Return<-(periodReturn(CierreAjustado$AAPL.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$AMZN.Return<-(periodReturn(CierreAjustado$AMZN.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$MSFT.Return<-(periodReturn(CierreAjustado$MSFT.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$TSLA.Return<-(periodReturn(CierreAjustado$TSLA.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$GOOG.Return<-(periodReturn(CierreAjustado$GOOG.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$GOOGL.Return<-(periodReturn(CierreAjustado$GOOGL.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$NVDA.Return<-(periodReturn(CierreAjustado$NVDA.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$BRK.B.Return<-(periodReturn(CierreAjustado$BRK.B.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$META.Return<-(periodReturn(CierreAjustado$META.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$UNH.Return<-(periodReturn(CierreAjustado$UNH.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$JNJ.Return<-(periodReturn(CierreAjustado$JNJ.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$PG.Return<-(periodReturn(CierreAjustado$PG.Adjusted, period = "daily",type="log")*100)
+CierreAjustado$VIX.Return<-(periodReturn(CierreAjustado$VIX.Adjusted, period = "daily",type="log")*100)
+
+##Se elimina la primera fila
+CierreAjustado<-CierreAjustado[-1,]
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+dygraph(CierreAjustado[,c(seq(29,42))], main = "Retornos acciones portafolio") %>%
+  dyOptions(colors = RColorBrewer::brewer.pal(14, "Set2"))%>%
+  dyAxis("y",label = "Porcentaje")%>%
+  dyAxis("x",label = "Año") %>%
+  dyLegend(dygraph, show = c("onmouseover"), width = 150) %>%
+  dyRangeSelector()
+
+```
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+###Desviacion estandar de las variaciones
+
+print(paste("La variacion para el SP500 es: ",sd(CierreAjustado$GSPC.Return)))
+print(paste("La variacion para el AAPL es: ",sd(CierreAjustado$AAPL.Return)))
+print(paste("La variacion para el AMZN es: ",sd(CierreAjustado$AMZN.Return)))
+print(paste("La variacion para el MSFT es: ",sd(CierreAjustado$MSFT.Return)))
+print(paste("La variacion para el TSLA es: ",sd(CierreAjustado$TSLA.Return)))
+print(paste("La variacion para el GOOG es: ",sd(CierreAjustado$GOOG.Return)))
+print(paste("La variacion para el GOOGL es: ",sd(CierreAjustado$GOOGL.Return)))
+print(paste("La variacion para el NVDA es: ",sd(CierreAjustado$NVDA.Return)))
+print(paste("La variacion para el BRK.B es: ",sd(CierreAjustado$BRK.B.Return)))
+print(paste("La variacion para el META es: ",sd(CierreAjustado$META.Return)))
+print(paste("La variacion para el UNH es: ",sd(CierreAjustado$UNH.Return)))
+print(paste("La variacion para el JNJ es: ",sd(CierreAjustado$JNJ.Return)))
+print(paste("La variacion para el PG es: ",sd(CierreAjustado$PG.Return)))
+print(paste("La variacion para el VIX es: ",sd(CierreAjustado$VIX.Return)))
+
+```
+
+### 4. Fechas
+
+Despues de calcular los rendimientos logaritmicos con respecto a los precios originalmente descargados desde Yahoo Finance, se van a organizar las fechas. Las acciones tienen un calendario bursatil, que en nuestro casa no muestran el precio de la accion para fines de semana y los dias festivos según el calendario festivo asi que se va a imputar el valor del día anterior para estos dias
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+##Se pasa la serie CierreAjustado a DataFrame
+
+CierreAjustadoDF<-as.data.frame(CierreAjustado)
+CierreAjustadoDF$Fecha<-as.Date(row.names(CierreAjustadoDF))
+
+##Crear el dataframe con las fechas sin importar festivos y fines de semana
+Fecha<-seq(from=as.Date(min(CierreAjustadoDF$Fecha)),to=as.Date(max(CierreAjustadoDF$Fecha)),by=1)
+Base<-data.frame(Fecha)
+
+###Realizar el merge
+CierreAjustadoDF<-left_join(Base,CierreAjustadoDF, by = c("Fecha"))
+
+### Para las variables que finalizan en "Return" se le va a imputar los NA los datos del dia anterior
+
+setnafill(x = CierreAjustadoDF[,c(which(colnames(CierreAjustadoDF)=="GSPC.Return"):ncol(CierreAjustadoDF))], type = "locf")
+
+##Union de las bases CierreAjustadoImputacion y CierreAjustadoDF
+
+#CierreAjustadoDF<-cbind(CierreAjustadoDF,CierreAjustadoImputacion)
+
+##Se pasa el dataframe CierreAjustadoDF a xts
+CierreAjustado<- xts(CierreAjustadoDF[,-1], order.by=CierreAjustadoDF[,1])
+
+
+```
+
+
+### 5.Deteccion puntos atipicos- Series rendimientos
+
+Para cada una de las series de rendimientos se va a detectar los outliers mediante la libreria "tsoutliers"
+
+#### SP500
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$GSPC.ReturnSuavizado<-CierreAjustado$GSPC.Return
+
+##Calculo los tsoutliers
+OutliersSP500<-tsoutliers(CierreAjustado$GSPC.Return)
+
+IndexOutliersSP500<-c(OutliersSP500$index)
+
+for (i in 1:length(IndexOutliersSP500)) {
+  CierreAjustado$GSPC.ReturnSuavizado[IndexOutliersSP500[i]]<-OutliersSP500$replacements[i]
+  
+}
+
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$GSPC.Return)
+plot.xts(CierreAjustado$GSPC.ReturnSuavizado)
+
+```
+
+#### AAPL
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$AAPL.ReturnSuavizado<-CierreAjustado$AAPL.Return
+
+##Calculo los tsoutliers
+OutliersAPPL<-tsoutliers(CierreAjustado$AAPL.Return)
+IndexOutliersAPPL<-c(OutliersAPPL$index)
+
+for (i in 1:length(IndexOutliersAPPL)) {
+  CierreAjustado$AAPL.ReturnSuavizado[IndexOutliersAPPL[i]]<-OutliersAPPL$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$AAPL.Return)
+plot.xts(CierreAjustado$AAPL.ReturnSuavizado)
+
+```
+
+#### AMZN
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$AMZN.ReturnSuavizado<-CierreAjustado$AMZN.Return
+
+##Calculo los tsoutliers
+OutliersAMZN<-tsoutliers(CierreAjustado$AMZN.Return)
+IndexOutliersAMZN<-c(OutliersAMZN$index)
+
+for (i in 1:length(IndexOutliersAMZN)) {
+  CierreAjustado$AMZN.ReturnSuavizado[IndexOutliersAMZN[i]]<-OutliersAMZN$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$AMZN.Return)
+plot.xts(CierreAjustado$AMZN.ReturnSuavizado)
+
+```
+
+#### MSTF
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$MSTF.ReturnSuavizado<-CierreAjustado$MSFT.Return
+
+##Calculo los tsoutliers
+OutliersMSTF<-tsoutliers(CierreAjustado$MSTF.Return)
+IndexOutliersMSTF<-c(OutliersMSTF$index)
+
+for (i in 1:length(IndexOutliersMSTF)) {
+  CierreAjustado$MSTF.ReturnSuavizado[IndexOutliersMSTF[i]]<-OutliersMSTF$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$MSTF.Return)
+plot.xts(CierreAjustado$MSTF.ReturnSuavizado)
+
+```
+
+#### TSLA
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$TSLA.ReturnSuavizado<-CierreAjustado$TSLA.Return
+
+##Calculo los tsoutliers
+OutliersTSLA<-tsoutliers(CierreAjustado$TSLA.Return)
+IndexOutliersTSLA<-c(OutliersTSLA$index)
+
+for (i in 1:length(IndexOutliersTSLA)) {
+  CierreAjustado$TSLA.ReturnSuavizado[IndexOutliersTSLA[i]]<-OutliersTSLA$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$TSLA.Return)
+plot.xts(CierreAjustado$TSLA.ReturnSuavizado)
+
+```
+#### GOOG
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$GOOG.ReturnSuavizado<-CierreAjustado$GOOG.Return
+
+##Calculo los tsoutliers
+OutliersGOOG<-tsoutliers(CierreAjustado$GOOG.Return)
+IndexOutliersGOOG<-c(OutliersGOOG$index)
+
+for (i in 1:length(IndexOutliersGOOG)) {
+  CierreAjustado$GOOG.ReturnSuavizado[IndexOutliersGOOG[i]]<-OutliersGOOG$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$GOOG.Return)
+plot.xts(CierreAjustado$GOOG.ReturnSuavizado)
+
+```
+
+#### GOOGL
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$GOOGL.ReturnSuavizado<-CierreAjustado$GOOGL.Return
+
+##Calculo los tsoutliers
+OutliersGOOGL<-tsoutliers(CierreAjustado$GOOGL.Return)
+IndexOutliersGOOGL<-c(OutliersGOOGL$index)
+
+for (i in 1:length(IndexOutliersGOOGL)) {
+  CierreAjustado$GOOGL.ReturnSuavizado[IndexOutliersGOOGL[i]]<-OutliersGOOGL$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$GOOGL.Return)
+plot.xts(CierreAjustado$GOOGL.ReturnSuavizado)
+
+```
+
+### NVDA
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$NVDA.ReturnSuavizado<-CierreAjustado$NVDA.Return
+
+##Calculo los tsoutliers
+OutliersNVDA<-tsoutliers(CierreAjustado$NVDA.Return)
+IndexOutliersNVDA<-c(OutliersNVDA$index)
+
+for (i in 1:length(IndexOutliersNVDA)) {
+  CierreAjustado$NVDA.ReturnSuavizado[IndexOutliersNVDA[i]]<-OutliersNVDA$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$NVDA.Return)
+plot.xts(CierreAjustado$NVDA.ReturnSuavizado)
+
+```
+
+### BRK.B
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$BRK.B.ReturnSuavizado<-CierreAjustado$BRK.B.Return
+
+##Calculo los tsoutliers
+OutliersBRK.B<-tsoutliers(CierreAjustado$BRK.B.Return)
+IndexOutliersBRK.B<-c(OutliersBRK.B$index)
+
+for (i in 1:length(IndexOutliersBRK.B)) {
+  CierreAjustado$BRK.B.ReturnSuavizado[IndexOutliersBRK.B[i]]<-OutliersBRK.B$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$BRK.B.Return)
+plot.xts(CierreAjustado$BRK.B.ReturnSuavizado)
+
+```
+### META
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$META.ReturnSuavizado<-CierreAjustado$META.Return
+
+##Calculo los tsoutliers
+OutliersMETA<-tsoutliers(CierreAjustado$META.Return)
+IndexOutliersMETA<-c(OutliersMETA$index)
+
+for (i in 1:length(IndexOutliersMETA)) {
+  CierreAjustado$META.ReturnSuavizado[IndexOutliersMETA[i]]<-OutliersMETA$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$META.Return)
+plot.xts(CierreAjustado$META.ReturnSuavizado)
+
+```
+### UNH
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$UNH.ReturnSuavizado<-CierreAjustado$UNH.Return
+
+##Calculo los tsoutliers
+OutliersUNH<-tsoutliers(CierreAjustado$UNH.Return)
+IndexOutliersUNH<-c(OutliersUNH$index)
+
+for (i in 1:length(IndexOutliersUNH)) {
+  CierreAjustado$UNH.ReturnSuavizado[IndexOutliersUNH[i]]<-OutliersUNH$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$UNH.Return)
+plot.xts(CierreAjustado$UNH.ReturnSuavizado)
+
+```
+
+### JNJ
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$JNJ.ReturnSuavizado<-CierreAjustado$JNJ.Return
+
+##Calculo los tsoutliers
+OutliersJNJ<-tsoutliers(CierreAjustado$JNJ.Return)
+IndexOutliersJNJ<-c(OutliersJNJ$index)
+
+for (i in 1:length(IndexOutliersJNJ)) {
+  CierreAjustado$JNJ.ReturnSuavizado[IndexOutliersJNJ[i]]<-OutliersJNJ$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$JNJ.Return)
+plot.xts(CierreAjustado$JNJ.ReturnSuavizado)
+
+```
+### PG
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$PG.ReturnSuavizado<-CierreAjustado$PG.Return
+
+##Calculo los tsoutliers
+OutliersPG<-tsoutliers(CierreAjustado$PG.Return)
+IndexOutliersPG<-c(OutliersPG$index)
+
+for (i in 1:length(IndexOutliersPG)) {
+  CierreAjustado$PG.ReturnSuavizado[IndexOutliersPG[i]]<-OutliersPG$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$PG.Return)
+plot.xts(CierreAjustado$PG.ReturnSuavizado)
+
+```
+
+### VIX
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$VIX.ReturnSuavizado<-CierreAjustado$VIX.Return
+
+##Calculo los tsoutliers
+OutliersVIX<-tsoutliers(CierreAjustado$VIX.Return)
+IndexOutliersVIX<-c(OutliersVIX$index)
+
+for (i in 1:length(IndexOutliersVIX)) {
+  CierreAjustado$VIX.ReturnSuavizado[IndexOutliersVIX[i]]<-OutliersVIX$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$VIX.Return)
+plot.xts(CierreAjustado$VIX.ReturnSuavizado)
+
+```
+
+### Grafico con los retornos suavizando puntos atipicos
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,fig.align='center'}
+dygraph(CierreAjustado[,43:56], main = "Retornos del SP500 y sus principales componentes (Suavizamiento)") %>%
+  dyOptions(colors = RColorBrewer::brewer.pal(20, "Set2"))%>%
+  dyAxis("y",label = "Porcentaje")%>%
+  dyAxis("x",label = "Año") %>%
+  dyLegend(dygraph, show = c("onmouseover"), width = 150) %>%
+  dyRangeSelector()
+
+```
+
+
+## Variable macroeconómicas
+
+Como variables macroeconómicas se tendrá en cuenta
+
+* Tasa de desempleo en Estados Unidos (UNRATE) De manera mensual
+* Tasa de interés Banco Central EEUU (FEDFUNDS) De manera mensual. Más información: https://www.global-rates.com/es/tipos-de-interes/bancos-centrales/banco-central-estados-unidos/interes-fed.aspx
+* Índice de sentimiento del consumidor (UMCSENT) De manera mensual
+* Índice de precios al consumidor (CPIAUCSL) De manera mensual
+* Nominal Broad U.S. Dollar Index (DTWEXBGS): De manera diaria
+
+### Tasa de desempleo en Estados Unidos, Tasa de interes,Indice de sentimiento al consumidor e IPC
+
+Se procede a extraer la informacion
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+VariablesMacroeconomicas<-c("UNRATE","FEDFUNDS","UMCSENT","CPIAUCSL")
+Macroeconomicas<-getSymbols(VariablesMacroeconomicas, src = "FRED", from = "2012-05-01", to = "2023-02-28")  ## El filtro de fecha no funciona con FRED
+
+###Union de las variables macroeconomicas
+
+Macroeconomicas<-cbind(UNRATE$UNRATE,FEDFUNDS$FEDFUNDS,UMCSENT$UMCSENT,CPIAUCSL$CPIAUCSL)
+
+##Omitir datos nulos
+Macroeconomicas<-na.omit(Macroeconomicas)
+
+###Como el filtro por fecha no funciona se va a pasar a dataframe y luego a xts
+
+MacroeconomicasDF<-as.data.frame(Macroeconomicas)
+MacroeconomicasDF$Fecha<-as.Date(row.names(MacroeconomicasDF))
+
+MacroeconomicasDF<-subset(MacroeconomicasDF,MacroeconomicasDF$Fecha>="2012-05-01" & MacroeconomicasDF$Fecha<="2023-02-28")
+
+Macroeconomicas<- xts(MacroeconomicasDF[,-5], order.by=MacroeconomicasDF[,5])
+
+```
+
+### Estandarización de las variables macroeconomicas
+
+Se le resta la media y se divide por la desviación estandar
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+Macroeconomicas$UNRATE.Scale<-scale(Macroeconomicas$UNRATE, center = TRUE, scale = TRUE)
+Macroeconomicas$FEDFUNDS.Scale<-scale(Macroeconomicas$FEDFUNDS, center = TRUE, scale = TRUE)
+Macroeconomicas$UMCSENT.Scale<-scale(Macroeconomicas$UMCSENT, center = TRUE, scale = TRUE)
+Macroeconomicas$CPIAUCSL.Scale<-scale(Macroeconomicas$CPIAUCSL, center = TRUE, scale = TRUE)
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,fig.align='center'}
+dygraph(Macroeconomicas[,5:8], main = "Variables macroeconomicas estandarizadas") %>%
+  dyOptions(colors = RColorBrewer::brewer.pal(20, "Set2"))%>%
+  dyAxis("y",label = "Valor")%>%
+  dyAxis("x",label = "Año") %>%
+  dyLegend(dygraph, show = c("onmouseover"), width = 150) %>%
+  dyRangeSelector()
+
+```
+### Se calculan las variaciones logaritmicas porcentuales para cada una de las variables macroeconomicas
+
+Los retornos se calculan con respecto a los valores originales de las variables macroeconomicas
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Retornos logaritmicos
+Macroeconomicas$UNRATE.Return<-(periodReturn(Macroeconomicas$UNRATE, period = "daily",type="log")*100)
+Macroeconomicas$FEDFUNDS.Return<-(periodReturn(Macroeconomicas$FEDFUNDS, period = "daily",type="log")*100)
+Macroeconomicas$UMCSENT.Return<-(periodReturn(Macroeconomicas$UMCSENT, period = "daily",type="log")*100)
+Macroeconomicas$CPIAUCSL.Return<-(periodReturn(Macroeconomicas$CPIAUCSL, period = "daily",type="log")*100)
+
+```
+
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,fig.align='center'}
+dygraph(Macroeconomicas[,9:12], main = "Variaciones variables macroeconomicas") %>%
+  dyOptions(colors = RColorBrewer::brewer.pal(20, "Set2"))%>%
+  dyAxis("y",label = "Valor")%>%
+  dyAxis("x",label = "Año") %>%
+  dyLegend(dygraph, show = c("onmouseover"), width = 150) %>%
+  dyRangeSelector()
+
+```
+
+Ahora se procede a pasar los datos de manera mensual a diaria
+
+## Pasar las variables macroeconomicas de manera mensual a diaria
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##La base Macroeconomicas pasa a dataframe
+MacroeconomicasDF<-as.data.frame(Macroeconomicas)
+MacroeconomicasDF$Fecha<-as.Date(row.names(MacroeconomicasDF))
+
+## Se hallan columnas con el mes y el año correspondiente a la fecha
+
+MacroeconomicasDF$Mes <- as.numeric(format(MacroeconomicasDF$Fecha,'%m'))
+MacroeconomicasDF$Anio <- as.numeric(format(MacroeconomicasDF$Fecha,'%Y'))
+
+##Crear dataframe con el rango de fecha que se esta trabajando en la base CierreAjustado, es decir "2012-05-21" hasta "2023-02-28"
+
+Fecha<-seq(from=as.Date(min(CierreAjustadoDF$Fecha)), to=as.Date(max(CierreAjustadoDF$Fecha)), by=1)
+Base<-data.frame(Fecha)
+Base$Mes <- as.numeric(format(Base$Fecha,'%m'))
+Base$Anio <- as.numeric(format(Base$Fecha,'%Y'))
+
+```
+
+Se crea un merge entre la base "Base" y cada una de las  Variables macroeconomicas tenidas en cuenta
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+Macroeconomicas<-left_join(Base, MacroeconomicasDF, by = c("Mes","Anio"))
+
+##Elimino las columas que no interesan
+
+Macroeconomicas<-Macroeconomicas[,-c(2,3,16)] ##Buscar la funcion which
+
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+## Se pasa a xts
+Macroeconomicas<- xts(Macroeconomicas[,-1], order.by=Macroeconomicas[,1])
+
+##Union de las acciones financieras con las variables macroeconomicas
+
+CierreAjustado<-cbind(CierreAjustado,Macroeconomicas)
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,fig.align='center'}
+dygraph(CierreAjustado[,65:68], main = "Variaciones logaritmicas estandarizadas") %>%
+  dyOptions(colors = RColorBrewer::brewer.pal(20, "Set2"))%>%
+  dyAxis("y",label = "Valor")%>%
+  dyAxis("x",label = "Año") %>%
+  dyLegend(dygraph, show = c("onmouseover"), width = 150) %>%
+  dyRangeSelector()
+
+```
+
+
+### Deteccion puntos atipicos- Variaciones logaritmicas macroeconomicas
+
+#### UNRATE
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$UNRATE.ReturnSuavizado<-CierreAjustado$UNRATE.Return
+
+##Calculo los tsoutliers
+OutliersUNRATE<-tsoutliers(CierreAjustado$UNRATE.Return)
+IndexOutliersUNRATE<-c(OutliersUNRATE$index)
+
+for (i in 1:length(IndexOutliersUNRATE)) {
+  CierreAjustado$UNRATE.ReturnSuavizado[IndexOutliersUNRATE[i]]<-OutliersUNRATE$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$UNRATE.Return)
+plot.xts(CierreAjustado$UNRATE.ReturnSuavizado)
+
+```
+
+#### FEDFUNDS
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$FEDFUNDS.ReturnSuavizado<-CierreAjustado$FEDFUNDS.Return
+
+##Calculo los tsoutliers
+OutliersFEDFUNDS<-tsoutliers(CierreAjustado$FEDFUNDS.Return)
+IndexOutliersFEDFUNDS<-c(OutliersFEDFUNDS$index)
+
+for (i in 1:length(IndexOutliersFEDFUNDS)) {
+  CierreAjustado$FEDFUNDS.ReturnSuavizado[IndexOutliersFEDFUNDS[i]]<-OutliersFEDFUNDS$replacements[i]
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$FEDFUNDS.Return)
+plot.xts(CierreAjustado$FEDFUNDS.ReturnSuavizado)
+
+```
+
+#### UMCSENT
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$UMCSENT.ReturnSuavizado<-CierreAjustado$UMCSENT.Return
+
+##Calculo los tsoutliers
+OutliersUMCSENT<-tsoutliers(CierreAjustado$UMCSENT.Return)
+IndexOutliersUMCSENT<-c(OutliersUMCSENT$index)
+
+for (i in 1:length(IndexOutliersUMCSENT)) {
+  
+  if(length(OutliersUMCSENT$replacements)!=0){
+    CierreAjustado$UMCSENT.ReturnSuavizado[IndexOutliersUMCSENT[i]]<-OutliersUMCSENT$replacements[i]
+  }
+  else{
+    CierreAjustado$UMCSENT.ReturnSuavizado<-CierreAjustado$UMCSENT.Return
+  }
+  
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$UMCSENT.Return)
+plot.xts(CierreAjustado$UMCSENT.ReturnSuavizado)
+
+
+```
+
+#### CPIAUCSL
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+##Se crea una nueva variable
+CierreAjustado$CPIAUCSL.ReturnSuavizado<-CierreAjustado$CPIAUCSL.Return
+
+##Calculo los tsoutliers
+OutliersCPIAUCSL<-tsoutliers(CierreAjustado$CPIAUCSL.Return)
+IndexOutliersCPIAUCSL<-c(OutliersCPIAUCSL$index)
+
+for (i in 1:length(IndexOutliersCPIAUCSL)) {
+  
+  if(length(OutliersCPIAUCSL$replacements)!=0){
+    CierreAjustado$CPIAUCSL.ReturnSuavizado[IndexOutliersCPIAUCSL[i]]<-OutliersCPIAUCSL$replacements[i]
+  }
+  else{
+    CierreAjustado$CPIAUCSL.ReturnSuavizado<-CierreAjustado$CPIAUCSL.Return
+  }
+  
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$CPIAUCSL.Return)
+plot.xts(CierreAjustado$CPIAUCSL.ReturnSuavizado)
+
+
+```
+### Nominal Broad U.S. Dollar Index
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+DolarIndex<-c("DTWEXBGS")
+Dolar<-getSymbols(DolarIndex, src = "FRED", from = "2012-05-01", to = "2023-02-28")  ## El filtro de fecha no funciona con FRED
+
+###Como el filtro por fecha no funciona se va a pasar a dataframe y luego a xts
+
+DolarIndexDF<-as.data.frame(DTWEXBGS)
+DolarIndexDF$Fecha<-as.Date(row.names(DolarIndexDF))
+
+DolarIndexDF<-subset(DolarIndexDF,DolarIndexDF$Fecha>="2012-05-18" & DolarIndexDF$Fecha<="2023-02-28")
+
+DolarIndex<- xts(DolarIndexDF[,1], order.by=DolarIndexDF[,2]) ##Lo nombra como una V1 pero no se porque me cambia el nombre
+
+
+##Union de las acciones financieras con las variables macroeconomicas
+
+CierreAjustado<-cbind(CierreAjustado,DolarIndex)
+
+### Se calculan los rendimientos diarios
+
+CierreAjustado$DolarIndex.Return<-(periodReturn(CierreAjustado$DolarIndex, period = "daily",type="log")*100)
+
+CierreAjustado<-CierreAjustado[-1]
+
+## Pasar CierreAjustado a df
+
+CierreAjustadoDF<-as.data.frame(CierreAjustado)
+CierreAjustadoDF$Fecha<-as.Date(row.names(CierreAjustadoDF))
+
+##Imputar el valor anterior
+setnafill(x = CierreAjustadoDF[,c(which(colnames(CierreAjustadoDF)=="DolarIndex.Return"):ncol(CierreAjustadoDF))], type = "locf")
+
+CierreAjustado<- xts(CierreAjustadoDF[,-75], order.by=CierreAjustadoDF[,75])
+
+```
+
+
+#### Suavizamiento de puntos atipicos para dolar index
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+
+
+##Se crea una nueva variable
+CierreAjustado$DolarIndex.ReturnSuavizado<-CierreAjustado$DolarIndex.Return
+
+##Calculo los tsoutliers
+OutliersDolarIndex<-tsoutliers(CierreAjustado$DolarIndex.Return)
+IndexOutliersDolarIndex<-c(OutliersDolarIndex$index)
+
+for (i in 1:length(IndexOutliersDolarIndex)) {
+  
+  if(length(OutliersDolarIndex$replacements)!=0){
+    CierreAjustado$DolarIndex.ReturnSuavizado[IndexOutliersDolarIndex[i]]<-OutliersDolarIndex$replacements[i]
+  }
+  else{
+    CierreAjustado$DolarIndex.ReturnSuavizado<-CierreAjustado$DolarIndex.Return
+  }
+  
+}
+par(mfrow=c(1,2))
+plot.xts(CierreAjustado$DolarIndex.Return)
+plot.xts(CierreAjustado$DolarIndex.ReturnSuavizado)
+
+```
+
+### Base completa
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+View(CierreAjustado)
+```
+
+### Base para el analisis
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+CierreAjustado2<-CierreAjustado[,c(seq(43,56),69,70,71,72,75)]
+CierreAjustado3<-as.data.frame(CierreAjustado2)
+
+write.csv(CierreAjustado3,"BaseAccionesF.csv")
+```
+
+### Correlacion
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,fig.align='center',fig.width=7,fig.height=7}
+
+corr<- round(cor(CierreAjustado3), 1)
+
+ggcorrplot(corr, method = 'circle', type = 'lower', lab = TRUE,  colors = c("cadetblue1", "white", "cadetblue4")) +
+  ggtitle("Correlación") +labs(x = "",y = "")
+
+
+
+```
+
+
