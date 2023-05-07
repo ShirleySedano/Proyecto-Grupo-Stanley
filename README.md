@@ -1,8 +1,6 @@
 ## Actualización de la herramienta de visualización de los datos históricos y futuros a corto plazo y mediano plazo del S&P500 y sus principales componentes, que mejore la toma de decisiones oportunas con respecto a los portafolios de inversión del Grupo Stanley
 
-## Reporte de selección y parametrización de modelos 
-
-### Integrantes del proyecto:
+##### Integrantes del proyecto:
 * Andrés Parra Garzón
 * Shirley Sánchez Sedano
 * Viviana Vales
@@ -23,7 +21,7 @@ rentabilidad y satisfacción de clientes a través de la toma de mejores decisio
 desinversión, indicadores que se han visto afectados es los últimos años y razón por la cual se decide hallar los 
 mejores modelos para pronósticar de la manera más precisa los valores a corto plazo del S&P500 y las acciones del portafolio de la empresa. Actualmente, el grupo se encuentra interesado en consolidar una herramienta que le
 
-### Pregunta a resolver en nuestro proyecto:
+##### Pregunta a resolver en nuestro proyecto:
 ¿Qué decisiones de inversión/desinversión debería tomar la Mesa de Dinero del grupo Stanley sobre su portafolio actual en el corto plazo?
 
 ### Proceso a realizar
@@ -69,29 +67,29 @@ En general se concluye de las dos primeras pruebas que los resultados de cada va
 En relación con los resultados de la función tsfeatures, encontramos que nos muestran que tenemos una serie con baja linealidad y alta entropía, lo cual hace que tenga características que la hacen difícil de pronosticar, y nos lleva a deducir que modelos lineales no se ajustarán muy bien a los datos. Por tanto, emplearemos modelos tipo Data Based como Redes Neuronales “LSTM” y Modelos de Ensamble como Random Forest que son propios para series con alta entropía. 
 
 
-#### LSTM
+##### LSTM
 
-#### VAR
+##### VAR
 Estos modelos vectoriales autorregresivospueden considerarse una extensión de los modelos autorregresivos AR(p) y 
 se utiliza cuando se quiere caracterizar las interacciones simultaneas entre un grupo de variables, por lo tanto, no existe 
 una variable dependiente y un conjunto de variables independientes que intentan explicarla, si no que existe un sistema de 
 ecuaciones constituido por un bloque de rezagos de cada una de las variables del modelo que presentan interacción entre sí.Los modelos
 que se intentaron y la precisión de los mismos los puede ver https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModelosVAR.Rmd
 
-#### Forecaster Autoregresor de Skforercaster con Random Forest
+##### FORECASTER AUTOREGRESOR CON RANDOM FOREST
 El Forecaster Autoregresor funciona como una herramienta bastante útil para realizar predicciones de series de tiempo usando modelos de regresión que emplean valores anteriores de la serie temporal como datos de entrada. Tiene la ventaja de permitir la optimización de hiperparámetros a través de búsqueda de cuadrícula y además de ofrecer la posibilidad de personalizar sus métricas para validar el modelo. Adicionalmente, la funcionalidad de obtener intervalos de predicción y conocer la importancia de los predictores del modelo. 
 
 Dado que cuando se trabaja por predicciones, generalmente se quiere predecir no solo un siguiente momento de la serie o step, si no varios, existen estratégicas que permiten generar predicciones de múltiples. Para esto, es importante tener en cuenta que para predecir el momento tn se requiere conocer el valor de tn-1, es decir, siempre se hace uno del valor del día anterior para predecir el día siguiente. A este proceso se le conoce como recursive forecasting y puede generarse fácilmente a través de las clases ForecasterAutoreg y ForecasterAutoregCustom de skforecast. Random Forest proporciona ventajas al ser uno de los algoritmos de aprendizaje que corre eficientemente para grandes cantidades de datos con alto volumen de variables, permite entender cuáles son las variables más importantes dentro del modelo y ha demostrado altos niveles de precisión en el uso de series temporales.
 
 ### 4. Implementación de modelos y análisis de resultados para S&P500
 
-#### LSTM
+##### LSTM
 
 
-#### MODELOS VAR
+##### MODELOS VAR
 
 
-#### FORECASTER AUTOREGRESOR CON RANDOM FOREST
+##### FORECASTER AUTOREGRESOR CON RANDOM FOREST
 Los resultados de la implementación de este modelo presentaron un muy buen desempeño, comparado con los resultados de los modelos VAR y LSTM. Se realizó la calibración de hiperparámetros y se hicieron varios experimentos que permitieron obtener un modelo óptimo para la predicción del S&P500. 
 
 Sin embargo, nos encontramos con la necesidad de entrenar dos modelos adicionales para la predicción de los comportamietnos de dos de las acciones del portafolio, que se vincularon al modelo. Esto incremnentó sustancialmente el desempeño del modelo y por tanto, se consideró pertinente incluir estos dos modelos adicionales en el proyecto.
@@ -106,7 +104,7 @@ Para realizar la predicción de los rendimientos logarítmicos de la acción de 
 
 Los resultados los puede ver en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModeloGARCH_MSFT.Rmd
 
-#### BRK:
+##### BRK:
 
 ### 6. Implementación de modelos para predecir Betas de las acciones
 
