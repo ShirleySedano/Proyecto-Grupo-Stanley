@@ -110,6 +110,6 @@ Para calcular los Betas se hace referencia al modelo de valoración de activos (
 
 Los resultados los puede ver https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/Betas.ipynb
 
-La documentación completa se puede consultar en
+La documentación completa se puede consultar en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/S5%20-%20Selecci%C3%B3n%20y%20parametrizaci%C3%B3n%20de%20modelos.pdf
 
 
