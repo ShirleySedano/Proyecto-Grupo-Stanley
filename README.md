@@ -98,6 +98,10 @@ Los resultados los puede ver en https://github.com/ShirleySedano/Proyecto-Grupo-
 
 ##### BRK:
 
+En el caso de la acción BRK se utilizará la predicción del precio de la acción a través de una red LSTM, y posteriormente de calcularán los rendimientos logarítmicos de dichas predicciones, para luego ser utilizadas en el modelo de predicción del rendimiento del S&P 500. Para esto se descargan directamente los datos de los precios ajustados de la acción desde Yahoo Finance.
+
+Los resultados se pueden ver en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModeloLSTM-MSFT.ipynb
+
 ### 6. Implementación de modelos para predecir Betas de las acciones
 
 ##### Implementación de regresión lineal para la predicciones de los Betas de las acciones 
@@ -105,5 +109,7 @@ Los resultados los puede ver en https://github.com/ShirleySedano/Proyecto-Grupo-
 Para calcular los Betas se hace referencia al modelo de valoración de activos (CAPM) el cual permite estimar la rentabilidad esperada en función del riesgo sistemático.Para este proyecto se realiza de una regresión lineal simple y se calcula el valor de α y β teniendo en cuenta como variable independiente los rendimientos logarítmicos del S&P500 y la variable dependiente va variando por el resto de los rendimientos logarítmicos de las demás acciones contempladas en este trabajo.  El valor de α se refieren respectivamente a la valoración errónea del activo relativo al mercado, libre de riesgo, mientras que β indica la sensibilidad del riesgo del mercado. 
 
 Los resultados los puede ver https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/Betas.ipynb
+
+La documentación completa se puede consultar en
 
 
