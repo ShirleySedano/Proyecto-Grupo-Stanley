@@ -68,7 +68,7 @@ En relación con los resultados de la función tsfeatures, encontramos que nos m
 
 
 ##### LSTM
-La LSTM (Long-Short Term Memory) son un tipo de red neuronal artificial, exactamente una extensión de las redes neuronales recurrentes (RNN) donde puede aprender dependencias a largo plazo entre unidades de tiempo de datos secuenciales, es decir las LSTM permiten a las RNN recordar sus entradas durante un largo período. Los modelos intentados con este metodo se pueden observar 
+La LSTM (Long-Short Term Memory) son un tipo de red neuronal artificial, exactamente una extensión de las redes neuronales recurrentes (RNN) donde puede aprender dependencias a largo plazo entre unidades de tiempo de datos secuenciales, es decir las LSTM permiten a las RNN recordar sus entradas durante un largo período. Los modelos intentados con este metodo se pueden observar https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModeloS%26P500-LSTM-Rendimientos.ipynb
 
 ##### VAR
 Estos modelos vectoriales autorregresivospueden considerarse una extensión de los modelos autorregresivos AR(p) y 
@@ -82,16 +82,7 @@ El Forecaster Autoregresor funciona como una herramienta bastante útil para rea
 
 Dado que cuando se trabaja por predicciones, generalmente se quiere predecir no solo un siguiente momento de la serie o step, si no varios, existen estratégicas que permiten generar predicciones de múltiples. Para esto, es importante tener en cuenta que para predecir el momento tn se requiere conocer el valor de tn-1, es decir, siempre se hace uno del valor del día anterior para predecir el día siguiente. A este proceso se le conoce como recursive forecasting y puede generarse fácilmente a través de las clases ForecasterAutoreg y ForecasterAutoregCustom de skforecast. Random Forest proporciona ventajas al ser uno de los algoritmos de aprendizaje que corre eficientemente para grandes cantidades de datos con alto volumen de variables, permite entender cuáles son las variables más importantes dentro del modelo y ha demostrado altos niveles de precisión en el uso de series temporales.
 
-### 4. Implementación de modelos y análisis de resultados para S&P500
-
-##### LSTM
-
-
-##### MODELOS VAR
-
-
-##### FORECASTER AUTOREGRESOR CON RANDOM FOREST
-Los resultados de la implementación de este modelo presentaron un muy buen desempeño, comparado con los resultados de los modelos VAR y LSTM. Se realizó la calibración de hiperparámetros y se hicieron varios experimentos que permitieron obtener un modelo óptimo para la predicción del S&P500. 
+https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModeloS%26P500-LSTM-Rendimientos.ipynb
 
 Sin embargo, nos encontramos con la necesidad de entrenar dos modelos adicionales para la predicción de los comportamietnos de dos de las acciones del portafolio, que se vincularon al modelo. Esto incremnentó sustancialmente el desempeño del modelo y por tanto, se consideró pertinente incluir estos dos modelos adicionales en el proyecto.
 
