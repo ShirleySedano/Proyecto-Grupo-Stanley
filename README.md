@@ -68,6 +68,7 @@ En relación con los resultados de la función tsfeatures, encontramos que nos m
 
 
 ##### LSTM
+La LSTM (Long-Short Term Memory) son un tipo de red neuronal artificial, exactamente una extensión de las redes neuronales recurrentes (RNN) donde puede aprender dependencias a largo plazo entre unidades de tiempo de datos secuenciales, es decir las LSTM permiten a las RNN recordar sus entradas durante un largo período. Los modelos intentados con este metodo se pueden observar 
 
 ##### VAR
 Estos modelos vectoriales autorregresivospueden considerarse una extensión de los modelos autorregresivos AR(p) y 
