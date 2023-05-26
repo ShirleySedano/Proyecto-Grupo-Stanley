@@ -107,6 +107,16 @@ Los resultados los puede ver https://github.com/ShirleySedano/Proyecto-Grupo-Sta
 
 Los tres modelos necesarios para realizar la predicción de los  retornos logaritmicos porcentuales del S&P500 y las acciones dentro y fuera del portafolio del grupo Stanley, se integran en un archivo Main.py, que se puede visualizar en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/Main.py, donde el escalador se encuentra en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/SP500Scaler.gz 
 
-La documentación completa se puede consultar en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/S5%20-%20Selecci%C3%B3n%20y%20parametrizaci%C3%B3n%20de%20modelos.pdf
+### 8. Documentación completa del modelo
+
+La documentación completa se puede consultar en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/DOCUMENTACION%20PROYECTO%20MAESTRIA.pdf
+
+### 9. Manual del usuario
+
+### 10. Acceso a la web donde se encuentra el Power BI
+
+### 11. Presentación
+
+https://www.youtube.com/watch?v=MHEiyB9inbo
 
 
