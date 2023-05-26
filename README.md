@@ -82,8 +82,6 @@ El Forecaster Autoregresor funciona como una herramienta bastante útil para rea
 
 Dado que cuando se trabaja por predicciones, generalmente se quiere predecir no solo un siguiente momento de la serie o step, si no varios, existen estratégicas que permiten generar predicciones de múltiples. Para esto, es importante tener en cuenta que para predecir el momento tn se requiere conocer el valor de tn-1, es decir, siempre se hace uno del valor del día anterior para predecir el día siguiente. A este proceso se le conoce como recursive forecasting y puede generarse fácilmente a través de las clases ForecasterAutoreg y ForecasterAutoregCustom de skforecast. Random Forest proporciona ventajas al ser uno de los algoritmos de aprendizaje que corre eficientemente para grandes cantidades de datos con alto volumen de variables, permite entender cuáles son las variables más importantes dentro del modelo y ha demostrado altos niveles de precisión en el uso de series temporales.
 
-https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModeloS%26P500-LSTM-Rendimientos.ipynb
-
 Sin embargo, nos encontramos con la necesidad de entrenar dos modelos adicionales para la predicción de los comportamietnos de dos de las acciones del portafolio, que se vincularon al modelo. Esto incremnentó sustancialmente el desempeño del modelo y por tanto, se consideró pertinente incluir estos dos modelos adicionales en el proyecto.
 
 Los resultados de la implementación de este modelo se pueden consultar en el siguiente enlace 
@@ -91,16 +89,11 @@ https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/SkForecaster%2
 
 ### 5. Implementación de modelos para predecir acciones de MSTF y BRK.B
 
-##### MSFT: 
-Para realizar la predicción de los rendimientos logarítmicos de la acción de Microsoft se usa el modelo GARCH, el cual encuentra la volatilidad promedio a medio plazo mediante una autorregresión que depende de la suma de perturbaciones rezagadas y de la suma de varianzas rezagados. 
+##### MSFT y BRK: 
+Para realizar la predicción de los rendimientos logarítmicos de la acción de Microsoft y BRK se usa el modelo GARCH, el cual encuentra la volatilidad promedio a medio plazo mediante una autorregresión que depende de la suma de perturbaciones rezagadas y de la suma de varianzas rezagados. 
 
-Los resultados los puede ver en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModeloGARCH_MSFT.Rmd
+Los resultados los puede ver en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModeloGARCH_MSFT.Rmd para MSFT y para BRK
 
-##### BRK:
-
-En el caso de la acción BRK se utilizará la predicción del precio de la acción a través de una red LSTM, y posteriormente de calcularán los rendimientos logarítmicos de dichas predicciones, para luego ser utilizadas en el modelo de predicción del rendimiento del S&P 500. Para esto se descargan directamente los datos de los precios ajustados de la acción desde Yahoo Finance.
-
-Los resultados se pueden ver en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModeloLSTM-MSFT.ipynb
 
 ### 6. Implementación de modelos para predecir Betas de las acciones
 
