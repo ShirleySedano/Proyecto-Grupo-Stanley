@@ -92,7 +92,7 @@ https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/SkForecaster%2
 ##### MSFT y BRK: 
 Para realizar la predicción de los rendimientos logarítmicos de la acción de Microsoft y BRK se usa el modelo GARCH, el cual encuentra la volatilidad promedio a medio plazo mediante una autorregresión que depende de la suma de perturbaciones rezagadas y de la suma de varianzas rezagados. 
 
-Los resultados los puede ver en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/ModeloGARCH_MSFT.Rmd para MSFT y para BRK
+Los resultados los puede ver en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/MSFTModel.R para MSFT y https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/BRBKModel.R para BRK
 
 
 ### 6. Implementación de modelos para predecir Betas de las acciones
@@ -102,6 +102,10 @@ Los resultados los puede ver en https://github.com/ShirleySedano/Proyecto-Grupo-
 Para calcular los Betas se hace referencia al modelo de valoración de activos (CAPM) el cual permite estimar la rentabilidad esperada en función del riesgo sistemático.Para este proyecto se realiza de una regresión lineal simple y se calcula el valor de α y β teniendo en cuenta como variable independiente los rendimientos logarítmicos del S&P500 y la variable dependiente va variando por el resto de los rendimientos logarítmicos de las demás acciones contempladas en este trabajo.  El valor de α se refieren respectivamente a la valoración errónea del activo relativo al mercado, libre de riesgo, mientras que β indica la sensibilidad del riesgo del mercado. 
 
 Los resultados los puede ver https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/Betas.ipynb
+
+### 7. Integración del modelo
+
+Los tres modelos necesarios para realizar la predicción de los  retornos logaritmicos porcentuales del S&P500 y las acciones dentro y fuera del portafolio del grupo Stanley, se integran en un archivo Main.py, que se puede visualizar en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/Main.py, donde el escalador se encuentra en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/SP500Scaler.gz 
 
 La documentación completa se puede consultar en https://github.com/ShirleySedano/Proyecto-Grupo-Stanley/blob/main/S5%20-%20Selecci%C3%B3n%20y%20parametrizaci%C3%B3n%20de%20modelos.pdf
 
