@@ -115,8 +115,12 @@ La documentación completa se puede consultar en https://github.com/ShirleySedan
 
 ### 10. Acceso a la web donde se encuentra el Power BI
 
+El vinculo para el acceso del Power BI es http://stanleydashboardmiad.epizy.com/ donde el usuario y contraseña por defecto es: AnalistaStanley1
+
 ### 11. Presentación
 
+Se encuentra en el siguiente link https://www.youtube.com/watch?v=MHEiyB9inbo
+
+
+
 https://www.youtube.com/watch?v=MHEiyB9inbo
-
-
